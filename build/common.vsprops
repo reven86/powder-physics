@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<VisualStudioPropertySheet
+	ProjectType="Visual C++"
+	Version="8.00"
+	Name="common"
+	OutputDirectory="$(SolutionDir)..\_bin\$(ConfigurationName)"
+	IntermediateDirectory="..\_obj\$(ConfigurationName)"
+	>
+	<Tool
+		Name="VCCLCompilerTool"
+		RuntimeLibrary="2"
+		RuntimeTypeInfo="false"
+		UsePrecompiledHeader="2"
+		PrecompiledHeaderThrough="pch.h"
+		WarningLevel="4"
+		DebugInformationFormat="3"
+		CompileAs="1"
+	/>
+</VisualStudioPropertySheet>
