@@ -3,11 +3,12 @@
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="common"
-	OutputDirectory="$(SolutionDir)..\_bin\$(ConfigurationName)"
+	OutputDirectory="$(SolutionDir)..\_bin"
 	IntermediateDirectory="..\_obj\$(ConfigurationName)"
 	>
 	<Tool
 		Name="VCCLCompilerTool"
+		AdditionalIncludeDirectories="..\source"
 		RuntimeLibrary="2"
 		RuntimeTypeInfo="false"
 		UsePrecompiledHeader="2"

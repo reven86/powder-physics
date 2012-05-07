@@ -29,6 +29,8 @@ extern void pp_get_particles_position_stream( float * out );
 //! Spawn particle at specific position.
 extern void pp_particle_spawn_at( int x, int y, int type );
 
+//! Insert collision at specific position.
+extern void pp_collision_set( int x, int y, int collision_type );
 
 
 #ifdef __cplusplus

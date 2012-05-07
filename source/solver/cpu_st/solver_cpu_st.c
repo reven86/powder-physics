@@ -16,14 +16,6 @@ int sParticleFirstFree;
 int sParticleAliveCount;
 
 
-//! Air particle.
-struct PPAirParticle
-{
-	float vx;		//!< X velocity.
-	float vy;		//!< Y velocity.
-	float p;		//!< Pressure.
-};
-
 struct PPAirParticle * spAir;
 struct PPAirParticle * spAirLast;
 int sGridX;
@@ -39,6 +31,12 @@ struct PPParticleMap
 	unsigned int index : 24;	//!< Index of particle in particles array.
 } * spParticleMap;
 
+
+//! Collision map.
+struct PPCollisionMap
+{
+	unsigned int type : 8;		//!< Collision type.
+} * spCollisionMap;
 
 
 
@@ -107,8 +105,16 @@ int solver_cpu_st_init( )
 		return 0;
 	}
 
+	spCollisionMap = malloc_log( sizeof( struct PPCollisionMap ) * num_parts );
+	if( !spCollisionMap )
+	{
+		solver_cpu_st_deinit( );
+		return 0;
+	}
+
 	memset( spAir, 0, sizeof( struct PPAirParticle ) * num_parts );
 	memset( spAirLast, 0, sizeof( struct PPAirParticle ) * num_parts );
+	memset( spCollisionMap, 0, sizeof( struct PPCollisionMap ) * num_parts );
 
     for(j=-1; j<2; j++)
         for(i=-1; i<2; i++)
@@ -131,10 +137,11 @@ int solver_cpu_st_deinit( )
 	free( spParticlesPhysInfoLast );
 	free( spAir );
 	free( spAirLast );
+	free( spCollisionMap );
 	return 1;
 }
 
-void kill_part2( struct PPParticleInfo * pi, int nx, int ny, int i )
+void kill_part( struct PPParticleInfo * pi, int nx, int ny, int i )
 {
   pi->type = 0;
   pi->life = sParticleFirstFree;
@@ -146,16 +153,17 @@ void kill_part2( struct PPParticleInfo * pi, int nx, int ny, int i )
   sParticleAliveCount--;
 }
 
-void update_air2( pp_time_t dt )
+void update_air( pp_time_t dt )
 {
     int x, y, i, j;
-    float dp, dx, dy, f, tx, ty;
+    float dp, dx, dy, f;
 	float avgx, avgy, avgp;
 	float sdt = FLT_SECOND * dt;
 	float p_loss_factor = ( float ) pow( sConstants.p_loss, ( float ) dt * FLT_SECOND );
 	float v_loss_factor = ( float ) pow( sConstants.v_loss, ( float ) dt * FLT_SECOND );
 	struct PPAirParticle * air;
 	struct PPAirParticle * air_last;
+	struct PPCollisionMap * cmap;
 
 	air = spAirLast;
 	spAirLast = spAir;
@@ -163,8 +171,9 @@ void update_air2( pp_time_t dt )
 
 	air = spAir;
 	air_last = spAirLast;
+	cmap = spCollisionMap;
     for( y = 0; y < sGridY; y++ )
-        for( x = 0; x< sGridX; x++, air++, air_last++ )
+        for( x = 0; x< sGridX; x++, air++, air_last++, cmap++ )
         {
             avgx = 0.0f;
             avgy = 0.0f;
@@ -174,7 +183,9 @@ void update_air2( pp_time_t dt )
 				{
                     f = sAirKernel[i + 1 + ( j + 1 ) * 3];
                     if( y + j > 0 && y + j < sGridY - 1 &&
-                        x + i > 0 && x + i < sGridX - 1 )
+                        x + i > 0 && x + i < sGridX - 1 &&
+						!( cmap + sGridX * j + i )->type
+						)
                     {
                         avgx += ( air_last + sGridX * j + i )->vx * f;
                         avgy += ( air_last + sGridX * j + i )->vy * f;
@@ -201,38 +212,13 @@ void update_air2( pp_time_t dt )
 	            dx = ( air_last + 1 )->p - ( air_last - 1 )->p;
 			}
 
-            tx = x - dx * sdt;
-            ty = y - dy * sdt;
-            i = (int)tx;
-            j = (int)ty;
-            tx -= i;
-            ty -= j;
-            if(i > 1 && i < sGridX - 3 &&
-               j > 1 && j < sGridY - 3)
-            {
-				avgx *= sConstants.v_smooth;
-                avgy *= sConstants.v_smooth;
-
-				avgx += ( 1.0f - sConstants.v_smooth ) * ( 1.0f - tx ) * ( 1.0f - ty ) * air_last->vx;
-                avgy += ( 1.0f - sConstants.v_smooth ) * ( 1.0f - tx ) * ( 1.0f - ty ) * air_last->vy;
-
-				avgx += ( 1.0f - sConstants.v_smooth ) * tx * ( 1.0f - ty ) * ( air_last + 1 )->vx;
-                avgy += ( 1.0f - sConstants.v_smooth ) * tx * ( 1.0f - ty ) * ( air_last + 1 )->vy;
-
-				avgx += ( 1.0f - sConstants.v_smooth ) * ( 1.0f - tx ) * ty * ( air_last + sGridX )->vx;
-                avgy += ( 1.0f - sConstants.v_smooth ) * ( 1.0f - tx ) * ty * ( air_last + sGridX )->vy;
-
-                avgx += ( 1.0f - sConstants.v_smooth ) * tx * ty * ( air_last + sGridX + 1 )->vx;
-                avgy += ( 1.0f - sConstants.v_smooth ) * tx * ty * ( air_last + sGridX + 1 )->vy;
-            }
-
-			air->vx = avgx * v_loss_factor + dx * sConstants.v_hstep * sdt;
-			air->vy = avgy * v_loss_factor + dy * sConstants.v_hstep * sdt;
-			air->p = avgp * p_loss_factor + dp * sConstants.p_hstep * sdt;
+			air->vx = cmap->type ? 0.0f : avgx * v_loss_factor - dx * sConstants.v_hstep * sdt;
+			air->vy = cmap->type ? 0.0f : avgy * v_loss_factor - dy * sConstants.v_hstep * sdt;
+			air->p = avgp * p_loss_factor - dp * sConstants.p_hstep * sdt;
 		}
 }
 
-int try_move2( int i, int x, int y, int nx, int ny )
+int try_move( int i, int x, int y, int nx, int ny )
 {
 	i;
 
@@ -245,6 +231,12 @@ int try_move2( int i, int x, int y, int nx, int ny )
 	if( spParticleMap[ ny * sConfiguration.xres + nx ].type )
 		return 0;
 
+	nx /= sConfiguration.grid_size;
+	ny /= sConfiguration.grid_size;
+
+	if( spCollisionMap[ ny * sGridX + nx ].type )
+		return 0;
+
 	return 1;
 }
 
@@ -255,18 +247,19 @@ void solver_cpu_st_update( pp_time_t dt )
 	struct PPAirParticle * air;
 	struct PPParticleType * ptype;
 	int i, j, k, r, npart;
-	int x, y, nx, ny;
+	int x, y, nx = 0, ny = 0;
 	int gridx, gridy;
 	int found, savestagnant;
 	float loss_factor;
 	float sdt = FLT_SECOND * dt;
-	float rgrid = 1.0f / sConfiguration.grid_size;
 	float accum_heat;
 	float savex, savey;
+	float dx, dy;
 	int heat_count;
 	int processed_count = 0;
+	float maxv = 0.0f;
 
-	update_air2( dt );
+	update_air( dt );
 
 	partp = spParticlesPhysInfo;
 	spParticlesPhysInfo = spParticlesPhysInfoLast;
@@ -291,50 +284,53 @@ void solver_cpu_st_update( pp_time_t dt )
 			parti->life -= dt;
 			if( parti->life <= 0 )
 			{
-				kill_part2( parti, x, y, i );
+				kill_part( parti, x, y, i );
 				continue;
 			}
-		}
-
-		if( x < 0 || y < 0 || x >= sConfiguration.xres || y >= sConfiguration.yres )
-		{
-			kill_part2( parti, x, y, i );
-			continue;
 		}
 
 		gridx = x / sConfiguration.grid_size;
 		gridy = y / sConfiguration.grid_size;
 
+		if( x < 0 || y < 0 || x >= sConfiguration.xres || y >= sConfiguration.yres ||
+			spCollisionMap[ gridy * sGridX + gridx ].type )
+		{
+			kill_part( parti, x, y, i );
+			continue;
+		}
+
 		air = spAir + gridy * sGridX + gridx;
 		ptype = spParticleTypes + parti->type;
 
+		//
 		// handle velocity
+		//
 
-		loss_factor = ( float ) pow( ptype->airloss, ( float ) dt * FLT_SECOND * rgrid );
+		loss_factor = ( float ) pow( ptype->airloss, ( float ) dt * FLT_SECOND );
 
 		air->vx *= loss_factor;
 		air->vy *= loss_factor;
 
-		air->vx += ptype->airdrag * rgrid * partpl->vx * sdt;
-		air->vy += ptype->airdrag * rgrid * partpl->vy * sdt;
+		air->vx += ptype->airdrag * partpl->vx * sdt;
+		air->vy += ptype->airdrag * partpl->vy * sdt;
 
 		if( gridy > 0 && gridy < sGridY - 1 && 
 			gridx > 0 && gridx < sGridX - 1 )
 		{
 			for( j = -1; j < 2; j++ )
 				for( k = -1; k < 2; k++ )
-					( air + j * sGridX + k )->p += ptype->hotair * rgrid * sdt * sAirKernel[k + 1 + ( j + 1 ) * 3];
+					( air + j * sGridX + k )->p += ptype->hotair * sdt * sAirKernel[k + 1 + ( j + 1 ) * 3];
 		}
 
 		loss_factor = ( float ) pow( ptype->vloss, ( float ) dt * FLT_SECOND );
 
-		partp->vx = partpl->vx * loss_factor + ptype->advection * rgrid * air->vx * sdt;
-		partp->vy = partpl->vy * loss_factor + ( ptype->advection * rgrid * air->vy + ptype->gravity ) * sdt;
+		partp->vx = partpl->vx * loss_factor + ptype->advection * air->vx * sdt;
+		partp->vy = partpl->vy * loss_factor + ( ptype->advection * air->vy + ptype->gravity * sConfiguration.yres ) * sdt;
 
-		partp->x = partpl->x + partp->vx * sdt;
-		partp->y = partpl->y + partp->vy * sdt;
-
+		//
 		// handle temperature
+		//
+
 		if( ptype->hconduct > 0.0f )
 		{
 			accum_heat = 0.0f;
@@ -359,13 +355,45 @@ void solver_cpu_st_update( pp_time_t dt )
 				partp->temp += ( accum_heat / heat_count - partpl->temp ) * ptype->hconduct * sdt;
 		}
 
+		//
 		// handle position
-		nx = ( int )( partp->x + 0.5f );
-		ny = ( int )( partp->y + 0.5f );
+		//
+
+		// trace against collisions
+		dx = partp->vx * sdt;
+		dy = partp->vy * sdt;
+		maxv = max( fabsf( dx ), fabsf( dy ) );
+		k = ( int ) maxv + 1;
+		maxv = 1.0f / maxv;
+		dx /= k;
+		dy /= k;
+		partp->x = partpl->x;
+		partp->y = partpl->y;
+		for( j = 0; j < k; j++ )
+		{
+			partp->x += dx;
+			partp->y += dy;
+			nx = ( int )( partp->x + 0.5f );
+			ny = ( int )( partp->y + 0.5f );
+			if( nx < 0 || nx >= sConfiguration.xres || 
+				ny < 0 || ny >= sConfiguration.yres ||
+				spCollisionMap[ ( ny / sConfiguration.grid_size ) * sGridX + nx / sConfiguration.grid_size ].type )
+			{
+				partp->x = ( float ) nx;
+				partp->y = ( float ) ny;
+				break;
+			}
+		}
+
+		if( x == nx && y == ny )
+		{
+			processed_count++;
+			continue;
+		}
 
 		savestagnant = parti->stagnant;
 		parti->stagnant = 0;
-		if( !try_move2( i, x, y, nx, ny ) )
+		if( !try_move( i, x, y, nx, ny ) )
 		{
 			savex = partp->x;
 			savey = partp->y;
@@ -377,33 +405,33 @@ void solver_cpu_st_update( pp_time_t dt )
 			}
 			else
 			{
-				if( nx != x && try_move2( i, x, y, nx, y ) )
+				if( nx != x && try_move( i, x, y, nx, y ) )
 				{
 					partp->x = savex;
 				}
-				else if( ny != y && try_move2( i, x, y, x, ny ) )
+				else if( ny != y && try_move( i, x, y, x, ny ) )
 				{
 					partp->y = savey;
 				}
 				else
 				{
 					r = ( rand() & 1 ) * 2 - 1;
-					if( ny != y && try_move2( i, x, y, x + r, ny ) )
+					if( ny != y && try_move( i, x, y, x + r, ny ) )
 					{
 						partp->x += r;
 						partp->y = savey;
 					}
-					else if( ny!=y && try_move2( i, x, y, x - r, ny ) )
+					else if( ny!=y && try_move( i, x, y, x - r, ny ) )
 					{
 						partp->x -= r;
 						partp->y = savey;
 					}
-					else if( nx != x && try_move2( i, x, y, nx, y + r ) )
+					else if( nx != x && try_move( i, x, y, nx, y + r ) )
 					{
 						partp->x = savex;
 						partp->y += r;
 					}
-					else if( nx != x && try_move2( i, x, y, nx, y - r ) )
+					else if( nx != x && try_move( i, x, y, nx, y - r ) )
 					{
 						partp->x = savex;
 						partp->y -= r;
@@ -411,34 +439,53 @@ void solver_cpu_st_update( pp_time_t dt )
 					else if( ptype->liquidfall && partp->vy > fabs( partp->vx ) )
 					{
 						found = 0;
-						k = savestagnant ? 10 : 50;
+						k = savestagnant ? sConfiguration.xres / 50 : sConfiguration.xres / 10;
 						for( j = x + r; j >= 0 && j >= x - k && j < x + k && j < sConfiguration.xres; j += r )
 						{
-							if( try_move2( i, x, y, j, ny ) )
+							if( spParticleMap[ y * sConfiguration.xres + j ].type &&
+								spParticleMap[ y * sConfiguration.xres + j ].type != parti->type ||
+								spCollisionMap[ y / sConfiguration.grid_size * sGridX + j / sConfiguration.grid_size ].type )
+								break;
+
+							if( try_move( i, x, y, j, ny ) )
 							{
 								partp->x += j - x;
 								partp->y += ny - y;
+								x = j;
+								y = ny;
 								found = 1;
 								break;
 							}
-							if( try_move2( i, x, y, j, y ) )
+							if( try_move( i, x, y, j, y ) )
 							{
 								partp->x += j - x;
+								x = j;
 								found = 1;
 								break;
 							}
 						}
 						r = partp->vy > 0 ? 1 : -1;
 						if( found )
+						{
+							k = savestagnant ? sConfiguration.yres / 50 : sConfiguration.yres / 10;
 							for( j = y + r; j >= 0 && j < sConfiguration.yres && j >= y - k && j < y + k; j += r)
 							{
-								if( try_move2( i, x, y, x, j ) )
+								if( spParticleMap[ j * sConfiguration.xres + x ].type &&
+									spParticleMap[ j * sConfiguration.xres + x ].type != parti->type ||
+									spCollisionMap[ j / sConfiguration.grid_size * sGridX + x / sConfiguration.grid_size ].type )
+								{
+									found = 0;
+									break;
+								}
+								if( try_move( i, x, y, x, j ) )
 								{
 									partp->y += j - y;
 									break;
 								}
 							}
-						else
+						}
+
+						if( !found )
 							parti->stagnant = 1;
 					}
 					else
@@ -451,13 +498,15 @@ void solver_cpu_st_update( pp_time_t dt )
 			}
 		}
 
+		x = ( int )( partpl->x + 0.5f );
+		y = ( int )( partpl->y + 0.5f );
 		nx = ( int )( partp->x + 0.5f );
 		ny = ( int )( partp->y + 0.5f );
 		if( nx < sConfiguration.grid_size || ny < sConfiguration.grid_size ||
 			nx >= sConfiguration.xres - sConfiguration.grid_size ||
 			ny >= sConfiguration.yres - sConfiguration.grid_size )
 		{
-			kill_part2( parti, x, y, i );
+			kill_part( parti, x, y, i );
 			continue;
 		}
 
@@ -522,7 +571,7 @@ void solver_cpu_st_get_particles_position_stream( float * out )
 		{
 			*out++ = partpl->x;
 			*out++ = partpl->y;
-			*out++ = partp->x;
+			*out++ = partp->x + 1.0f;	// make line at least 1px length
 			*out++ = partp->y;
 			stored_count++;
 		}
@@ -531,4 +580,15 @@ void solver_cpu_st_get_particles_position_stream( float * out )
 		partp++;
 		partpl++;
 	}
+}
+
+void solver_cpu_st_collision_set( int x, int y, int collision_type )
+{
+	int gridx = x / sConfiguration.grid_size;
+	int gridy = y / sConfiguration.grid_size;
+
+	if( gridx < 0 || gridx >= sGridX || gridy < 0 || gridy >= sGridY )
+		return;
+
+	spCollisionMap[ gridy * sGridX + gridx ].type = collision_type;
 }

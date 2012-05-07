@@ -17,6 +17,14 @@ typedef void (* PPLogFn) ( enum PPLogLevel level, const char * format, ... );
 
 
 
+// Time represented in integers so 1 second equals to 10000.
+typedef int pp_time_t;
+#define SECOND 10000
+#define FLT_SECOND 0.0001f
+
+
+
+
 //! Configuration of the World
 struct PPConfiguration
 {
@@ -36,16 +44,10 @@ struct PPConstants
 	float v_loss;			//!< Velocity loss per second. Default is 0.999f.
 	float p_hstep;			//!< Pressure half dependency of velocity gradient per second. Default is 0.15f.
 	float v_hstep;			//!< Velocity half dependency of velocity gradient per second. Default is 0.2f.
-	float v_smooth;			//!< Velocity smooth transfer. Default is 0.7f.
+	pp_time_t timestep;		//!< Fixed time step. Use 0 to disable.
 };
 
 
-
-
-// Time represented in integers so 1 second equals to 10000.
-typedef int pp_time_t;
-#define SECOND 10000
-#define FLT_SECOND 0.0001f
 
 
 // Particle struct is split into several small structures
@@ -87,4 +89,14 @@ struct PPParticleType
 	float initial_temp;				//!< Initital temperature.
 	unsigned int powderfall : 1;	//!< Particle is falling like a powder.
 	unsigned int liquidfall : 1;	//!< Particle is falling like a liquid, allowed to moving in horizontal directions.
+};
+
+
+
+//! Air particle.
+struct PPAirParticle
+{
+	float vx;		//!< X velocity.
+	float vy;		//!< Y velocity.
+	float p;		//!< Pressure.
 };
