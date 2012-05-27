@@ -179,6 +179,58 @@
 				</File>
 			</Filter>
 		</Filter>
+		<Filter
+			Name="particles"
+			>
+			<File
+				RelativePath="..\source\particles\common.h"
+				>
+			</File>
+			<File
+				RelativePath="..\source\particles\register.inl"
+				>
+			</File>
+			<File
+				RelativePath="..\source\particles\update_cpu_st.inl"
+				>
+			</File>
+			<Filter
+				Name="01_water"
+				>
+				<File
+					RelativePath="..\source\particles\01_water\register.inl"
+					>
+				</File>
+				<File
+					RelativePath="..\source\particles\01_water\update_cpu_st.inl"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="02_collision"
+				>
+				<File
+					RelativePath="..\source\particles\02_collision\register.inl"
+					>
+				</File>
+				<File
+					RelativePath="..\source\particles\02_collision\update_cpu_st.inl"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="03_steam"
+				>
+				<File
+					RelativePath="..\source\particles\03_steam\register.inl"
+					>
+				</File>
+				<File
+					RelativePath="..\source\particles\03_steam\update_cpu_st.inl"
+					>
+				</File>
+			</Filter>
+		</Filter>
 		<File
 			RelativePath="..\source\api.h"
 			>

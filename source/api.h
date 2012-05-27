@@ -1,8 +1,5 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 
 #include "shared/types.h"
@@ -23,16 +20,26 @@ extern void pp_update( pp_time_t dt );
 
 //! Get alive particles count.
 extern int pp_get_alive_particles_count( );
-//! Get particles position stream (previous position[x,y], current position[x,y]).
-extern void pp_get_particles_position_stream( float * out );
+//! Get raw particles info stream (read only).
+extern const struct PPParticleInfo * pp_get_particles_info_stream( );
+//! Get raw particles current physical info stream (read only).
+extern const struct PPParticlePhysInfo * pp_get_particles_phys_info_stream( );
+//! Get raw particles previous physical info stream (read only).
+extern const struct PPParticlePhysInfo * pp_get_particles_phys_info_stream_last( );
+//! Get raw air particles stream (read/write).
+extern struct PPAirParticle * pp_get_air_particle_stream( );
+//! Get raw air particles previous stream (read only).
+extern const struct PPAirParticle * pp_get_air_particle_stream_last( );
+
+
+//! Get number of registered particle types.
+extern int pp_get_particle_types_count( );
+//! Get particle type.
+extern const struct PPParticleType * pp_get_particle_type( int index );
+
 
 //! Spawn particle at specific position.
-extern void pp_particle_spawn_at( int x, int y, int type );
+extern void pp_particle_spawn_at( int x, int y, unsigned int type );
 
 //! Insert collision at specific position.
-extern void pp_collision_set( int x, int y, int collision_type );
-
-
-#ifdef __cplusplus
-}
-#endif
+extern void pp_collision_set( int x, int y, unsigned int collision_type );

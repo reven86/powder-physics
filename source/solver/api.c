@@ -3,21 +3,22 @@
 #include "cpu_st/solver_cpu_st.h"
 #include "shared/version.h"
 #include "shared/utils.h"
+#include "particles/common.h"
+#include <assert.h>
 
 
 
 
 struct PPConfiguration sConfiguration;
 struct PPConstants sConstants;
-struct PPParticleType * spParticleTypes;
-
-
-pp_time_t sElapsedTime = 0;
+struct PPParticleType * spParticleTypes = NULL;
 
 
 
 int pp_init( const struct PPConfiguration * configuration )
 {
+	int i;
+
 	memcpy( &sConfiguration, configuration, sizeof( struct PPConfiguration ) );
 
 	if( sConfiguration.log_fn )
@@ -27,28 +28,28 @@ int pp_init( const struct PPConfiguration * configuration )
 		sConfiguration.log_fn( LOG_INFO, "Initialization of Powder Physics ver. %d.%d.%d.", VER_MAJOR, VER_MINOR, VER_BUILD );
 #endif
 
+	assert( sConfiguration.xres % sConfiguration.grid_size == 0 );
+	assert( sConfiguration.yres % sConfiguration.grid_size == 0 );
+	if( sConfiguration.xres % sConfiguration.grid_size != 0 ||
+		sConfiguration.yres % sConfiguration.grid_size != 0 )
+	{
+		if( sConfiguration.log_fn )
+			sConfiguration.log_fn( LOG_ERROR, "xres and yres must be divided evenly by grid_size: xres=%d, yres=%d, grid_size=%d", sConfiguration.xres, sConfiguration.yres, sConfiguration.grid_size );
+		return 0;
+	}
+
 	sConstants.p_loss = 0.95f;
 	sConstants.v_loss = 0.95f;
 	sConstants.p_hstep = 4.5f;
 	sConstants.v_hstep = 6.0f;
-	sConstants.timestep = SECOND / 30;
 
-	spParticleTypes = malloc_log( sizeof( struct PPParticleType ) * 2 );
+	spParticleTypes = malloc_log( sizeof( struct PPParticleType ) * ( PARTICLE_TYPES + 1 ) );
 	if( !spParticleTypes )
 		return 0;
 
-	spParticleTypes[1].name = "Water";
-	spParticleTypes[1].airloss = 0.64f;
-	spParticleTypes[1].airdrag = 0.8f;
-	spParticleTypes[1].hotair = 0.00f;
-	spParticleTypes[1].vloss = 0.5f;
-	spParticleTypes[1].advection = 4.9f;
-	spParticleTypes[1].gravity = 0.3f;
-	spParticleTypes[1].hconduct = 1.0f;
-	spParticleTypes[1].powderfall = 1;
-	spParticleTypes[1].liquidfall = 1;
-	spParticleTypes[1].collision = 0.0f;
-	spParticleTypes[1].initial_temp = 20.0;
+	i = 1;
+#include "particles/register.inl"
+	assert( i == PARTICLE_TYPES + 1 );
 
 	return solver_cpu_st_init( );
 }
@@ -71,13 +72,7 @@ extern struct PPConstants * pp_get_constants( )
 
 void pp_update( pp_time_t dt )
 {
-	sElapsedTime += dt;
-
-	while( sElapsedTime > sConstants.timestep )
-	{
-		solver_cpu_st_update( sConstants.timestep );
-		sElapsedTime -= sConstants.timestep;
-	}
+	solver_cpu_st_update( dt );
 }
 
 int pp_get_alive_particles_count( )
@@ -85,17 +80,47 @@ int pp_get_alive_particles_count( )
 	return solver_cpu_st_get_alive_particles_count( );
 }
 
-void pp_get_particles_position_stream( float * out )
+const struct PPParticleInfo * pp_get_particles_info_stream( )
 {
-	solver_cpu_st_get_particles_position_stream( out );
+	return solver_cpu_st_get_particles_info_stream( );
 }
 
-void pp_particle_spawn_at( int x, int y, int type )
+const struct PPParticlePhysInfo * pp_get_particles_phys_info_stream( )
+{
+	return solver_cpu_st_get_particles_phys_info_stream( );
+}
+
+const struct PPParticlePhysInfo * pp_get_particles_phys_info_stream_last( )
+{
+	return solver_cpu_st_get_particles_phys_info_stream_last( );
+}
+
+struct PPAirParticle * pp_get_air_particle_stream( )
+{
+	return solver_cpu_st_get_air_particle_stream( );
+}
+
+const struct PPAirParticle * pp_get_air_particle_stream_last( )
+{
+	return solver_cpu_st_get_air_particle_stream_last( );
+}
+
+void pp_particle_spawn_at( int x, int y, unsigned int type )
 {
 	solver_cpu_st_spawn_at( x, y, type );
 }
 
-void pp_collision_set( int x, int y, int collision_type )
+void pp_collision_set( int x, int y, unsigned int collision_type )
 {
 	solver_cpu_st_collision_set( x, y, collision_type );
+}
+
+int pp_get_particle_types_count( )
+{
+	return PARTICLE_TYPES + 1;
+}
+
+const struct PPParticleType * pp_get_particle_type( int index )
+{
+	return spParticleTypes + index;
 }

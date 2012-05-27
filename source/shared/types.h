@@ -31,6 +31,7 @@ struct PPConfiguration
 	int xres;		//!< X resolution. Total number of particles is xres * yres.
 	int yres;		//!< Y resolution. Total number of particles is xres * yres.
 	int grid_size;	//!< Size of one cell. Actual grid resolution is (xres / grid_size) x (yres / grid_size).
+	float scale;	//!< World scale factor. All velocities and hardcoded distances are scaled by this factor.
 
 	PPLogFn	log_fn;	//!< Log function. If NULL, logging is disabled.
 };
@@ -44,7 +45,6 @@ struct PPConstants
 	float v_loss;			//!< Velocity loss per second. Default is 0.999f.
 	float p_hstep;			//!< Pressure half dependency of velocity gradient per second. Default is 0.15f.
 	float v_hstep;			//!< Velocity half dependency of velocity gradient per second. Default is 0.2f.
-	pp_time_t timestep;		//!< Fixed time step. Use 0 to disable.
 };
 
 
@@ -58,7 +58,8 @@ struct PPParticleInfo
 {
 	unsigned int type : 7;		//!< Particle's type (>0). If particle is dead, 'type' is 0.
 	unsigned int stagnant : 1;	//!< Particle is stagnant.
-	pp_time_t life : 24;		//!< Particle remaining lifetime. If less than zero, particle is always alive. If particle is dead, used as index of next dead particle.
+	unsigned int freefall : 1;	//!< Particle is free falling, e.g. not collided in last frame.
+	pp_time_t life : 23;		//!< Particle remaining lifetime. If less than zero, particle is always alive. If particle is dead, used as index of next dead particle.
 };
 
 //! Particle physic info.
@@ -71,6 +72,15 @@ struct PPParticlePhysInfo
 	float temp;				//!< Temperature.
 };
 
+
+
+enum PPMoveType
+{
+	MT_IMMOVABLE,		//!< Collision particle, doesn't participate in particles update.
+	MT_NORMAL,			//!< Standard rigid particle.
+	MT_POWDER,			//!< Powder particle.
+	MT_LIQUID,			//!< Liquid particle.
+};
 
 
 
@@ -87,8 +97,8 @@ struct PPParticleType
 	float hconduct;					//!< Heat conduct.
 	float collision;				//!< Velocity change factor on collision.
 	float initial_temp;				//!< Initital temperature.
-	unsigned int powderfall : 1;	//!< Particle is falling like a powder.
-	unsigned int liquidfall : 1;	//!< Particle is falling like a liquid, allowed to moving in horizontal directions.
+	float diffusion;				//!< Chaotic part of velocity calculation.
+	unsigned int move_type : 2;		//!< Particle move behavior (one of PPMoveType).
 };
 
 
@@ -96,7 +106,8 @@ struct PPParticleType
 //! Air particle.
 struct PPAirParticle
 {
-	float vx;		//!< X velocity.
-	float vy;		//!< Y velocity.
-	float p;		//!< Pressure.
+	unsigned int type : 8;	//!< Collision type.
+	float vx;				//!< X velocity.
+	float vy;				//!< Y velocity.
+	float p;				//!< Pressure.
 };
