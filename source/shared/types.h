@@ -31,7 +31,6 @@ struct PPConfiguration
 	int xres;		//!< X resolution. Total number of particles is xres * yres.
 	int yres;		//!< Y resolution. Total number of particles is xres * yres.
 	int grid_size;	//!< Size of one cell. Actual grid resolution is (xres / grid_size) x (yres / grid_size).
-	float scale;	//!< World scale factor. All velocities and hardcoded distances are scaled by this factor.
 
 	PPLogFn	log_fn;	//!< Log function. If NULL, logging is disabled.
 };

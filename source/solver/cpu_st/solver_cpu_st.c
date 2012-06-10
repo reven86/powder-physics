@@ -360,12 +360,12 @@ void solver_cpu_st_update( pp_time_t dt )
 		loss_factor = ( float ) pow( ptype->vloss, ( float ) dt * FLT_SECOND );
 
 		partp->vx = partpl->vx * loss_factor + ptype->advection * air->vx * sdt;
-		partp->vy = partpl->vy * loss_factor + ( ptype->advection * air->vy + ptype->gravity * sConfiguration.scale ) * sdt;
+		partp->vy = partpl->vy * loss_factor + ( ptype->advection * air->vy + ptype->gravity ) * sdt;
 
 		if(ptype->diffusion > 0.0f)
 		{
-			partp->vx += ptype->diffusion * ( frand( ) * 2.0f - 1.0f ) * sdt * sConfiguration.scale;
-			partp->vy += ptype->diffusion * ( frand( ) * 2.0f - 1.0f ) * sdt * sConfiguration.scale;
+			partp->vx += ptype->diffusion * ( frand( ) * 2.0f - 1.0f ) * sdt;
+			partp->vy += ptype->diffusion * ( frand( ) * 2.0f - 1.0f ) * sdt;
 		}
 
 		//
@@ -467,7 +467,7 @@ void solver_cpu_st_update( pp_time_t dt )
 					{
 						found = 0;
 						k = savestagnant ? 10 : 50;
-						k = ( int ) ( k * sConfiguration.scale );
+						k = ( int ) ( k );
 						for( j = x + r; j >= 0 && j >= x - k && j < x + k && j < sConfiguration.xres; j += r )
 						{
 							if( spParticleMap[ y * sConfiguration.xres + j ].type
