@@ -5,6 +5,7 @@
 #include "shared/utils.h"
 #include "particles/common.h"
 #include <assert.h>
+#include <string.h>
 
 
 
@@ -123,4 +124,14 @@ int pp_get_particle_types_count( )
 const struct PPParticleType * pp_get_particle_type( int index )
 {
 	return spParticleTypes + index;
+}
+
+int pp_find_particle_type( const char * name )
+{
+	int i;
+	for( i = 1; i <= PARTICLE_TYPES; i++ )
+		if( !strcmp( name, spParticleTypes[ i ].name ) )
+			return i;
+
+	return -1;
 }

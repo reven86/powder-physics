@@ -36,6 +36,8 @@ extern const struct PPAirParticle * pp_get_air_particle_stream_last( );
 extern int pp_get_particle_types_count( );
 //! Get particle type.
 extern const struct PPParticleType * pp_get_particle_type( int index );
+//! Find particle type by name. Returns -1 in case of failure. Complexity is O(N).
+extern int pp_find_particle_type( const char * name );
 
 
 //! Spawn particle at specific position.
