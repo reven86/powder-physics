@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="shared">
+      <UniqueIdentifier>{80973c16-9bf0-40b6-8d11-43c048511dde}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="solver">
+      <UniqueIdentifier>{670cc40d-78e6-4ae3-b89e-161855039ba1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="solver\cpu_st">
+      <UniqueIdentifier>{65a4360b-2a5e-4e74-bf7b-f90696cc366f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="particles">
+      <UniqueIdentifier>{18557706-77c9-45c6-86a4-184197d30bb6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="particles\01_water">
+      <UniqueIdentifier>{1c71261f-eb82-48ae-aaa3-a4956d1ac2f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="particles\02_collision">
+      <UniqueIdentifier>{b036f1d2-f0fd-4581-8186-282c81afbd7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="particles\03_steam">
+      <UniqueIdentifier>{0ca84094-42e7-4cf7-af8b-d9f9db694d91}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\source\shared\types.h">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\shared\utils.h">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\shared\version.h">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\solver\cpu_st\solver_cpu_st.h">
+      <Filter>solver\cpu_st</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\particles\common.h">
+      <Filter>particles</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\api.h" />
+    <ClInclude Include="..\source\pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\source\shared\utils.c">
+      <Filter>shared</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\solver\api.c">
+      <Filter>solver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\solver\cpu_st\solver_cpu_st.c">
+      <Filter>solver\cpu_st</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\pch.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\source\particles\register.inl">
+      <Filter>particles</Filter>
+    </None>
+    <None Include="..\source\particles\update_cpu_st.inl">
+      <Filter>particles</Filter>
+    </None>
+    <None Include="..\source\particles\01_water\register.inl">
+      <Filter>particles\01_water</Filter>
+    </None>
+    <None Include="..\source\particles\01_water\update_cpu_st.inl">
+      <Filter>particles\01_water</Filter>
+    </None>
+    <None Include="..\source\particles\02_collision\register.inl">
+      <Filter>particles\02_collision</Filter>
+    </None>
+    <None Include="..\source\particles\02_collision\update_cpu_st.inl">
+      <Filter>particles\02_collision</Filter>
+    </None>
+    <None Include="..\source\particles\03_steam\register.inl">
+      <Filter>particles\03_steam</Filter>
+    </None>
+    <None Include="..\source\particles\03_steam\update_cpu_st.inl">
+      <Filter>particles\03_steam</Filter>
+    </None>
+  </ItemGroup>
+</Project>
