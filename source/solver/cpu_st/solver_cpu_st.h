@@ -1,4 +1,6 @@
-#pragma once
+#ifndef __POWDER_SOLVER_CPU_ST_H__
+#define __POWDER_SOLVER_CPU_ST_H__
+
 
 #include "shared/types.h"
 
@@ -18,3 +20,6 @@ const struct PPAirParticle * solver_cpu_st_get_air_particle_stream_last( );
 
 void solver_cpu_st_spawn_at( int x, int y, unsigned int type );
 void solver_cpu_st_collision_set( int x, int y, unsigned int collision_type );
+
+
+#endif // __POWDER_SOLVER_CPU_ST_H__

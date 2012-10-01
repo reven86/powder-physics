@@ -1,4 +1,6 @@
-#pragma once
+#ifndef __POWDER_TYPES_H__
+#define __POWDER_TYPES_H__
+
 
 
 
@@ -110,3 +112,6 @@ struct PPAirParticle
 	float vy;				//!< Y velocity.
 	float p;				//!< Pressure.
 };
+
+
+#endif // __POWDER_TYPES_H__

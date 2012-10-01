@@ -1,5 +1,5 @@
-#pragma once
-
+#ifndef __POWDER_API_H__
+#define __POWDER_API_H__
 
 
 #include "shared/types.h"
@@ -45,3 +45,7 @@ extern void pp_particle_spawn_at( int x, int y, unsigned int type );
 
 //! Insert collision at specific position.
 extern void pp_collision_set( int x, int y, unsigned int collision_type );
+
+
+
+#endif // __POWDER_API_H__
