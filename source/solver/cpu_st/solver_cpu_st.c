@@ -264,7 +264,7 @@ void solver_cpu_st_update( pp_time_t dt )
 	float sdt = FLT_SECOND * dt;
 	float accum_heat;
 	float savex, savey;
-	float dx, dy;
+	float dx, dy, absdx, absdy;
 	int heat_count;
 	int processed_count = 0;
 	float maxv = 0.0f;
@@ -381,7 +381,9 @@ void solver_cpu_st_update( pp_time_t dt )
 		// trace against collisions
 		dx = partp->vx * sdt;
 		dy = partp->vy * sdt;
-		maxv = max( fabsf( dx ), fabsf( dy ) );
+        absdx = fabsf( dx );
+        absdy = fabsf( dy );
+		maxv = absdx > absdy ? absdx : absdy;
 		k = ( int ) maxv + 1;
 		dx /= k;
 		dy /= k;

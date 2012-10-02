@@ -44,7 +44,7 @@ int pp_init( const struct PPConfiguration * configuration )
 	sConstants.p_hstep = 4.5f;
 	sConstants.v_hstep = 6.0f;
 
-	spParticleTypes = malloc_log( sizeof( struct PPParticleType ) * ( PARTICLE_TYPES + 1 ) );
+	spParticleTypes = ( struct PPParticleType * ) malloc_log( sizeof( struct PPParticleType ) * ( PARTICLE_TYPES + 1 ) );
 	if( !spParticleTypes )
 		return 0;
 
