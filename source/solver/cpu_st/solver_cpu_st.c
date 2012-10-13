@@ -31,7 +31,7 @@ struct PPParticleMap
 {
 	unsigned int type : 8;		//!< Particle type. Used for caching.
 	unsigned int index : 23;	//!< Index of particle in particles array.
-	unsigned int collision : 1;	//!< Is this particle is collision particle?
+	unsigned int collision : 1;	//!< Is this particle collision particle?
 } * spParticleMap = NULL;
 
 
@@ -210,7 +210,7 @@ void update_air( pp_time_t dt )
 		}
 }
 
-int try_move( int i, int x, int y, int nx, int ny )
+__inline int try_move( int i, int x, int y, int nx, int ny )
 {
 	i;
 
@@ -250,12 +250,21 @@ __inline float frand( )
 	return ( float ) rand( ) / RAND_MAX;
 }
 
+__inline int fast_ftol( float x )
+{
+    unsigned e = (0x7F + 31) - ((* (unsigned*) &x & 0x7F800000) >> 23);
+    unsigned m = 0x80000000 | (* (unsigned*) &x << 8);
+
+    return (int)((m >> e) & -(e < 32));
+}
+
 void solver_cpu_st_update( pp_time_t dt )
 {
 	struct PPParticleInfo * parti;
 	struct PPParticlePhysInfo * partp, *partpl;
 	struct PPAirParticle * air;
 	struct PPParticleType * ptype;
+    struct PPParticleMap * tempp = NULL;
 	int i, j, k, r, npart;
 	int x, y, nx = 0, ny = 0;
 	int gridx, gridy;
@@ -286,8 +295,8 @@ void solver_cpu_st_update( pp_time_t dt )
 		if( !parti->type )
 			continue;
 
-		x = ( int )floorf( partpl->x );
-		y = ( int )floorf( partpl->y );
+		x = fast_ftol( partpl->x );
+		y = fast_ftol( partpl->y );
 
 		if( parti->life >= 0 )
 		{
@@ -306,7 +315,7 @@ void solver_cpu_st_update( pp_time_t dt )
 		ptype = spParticleTypes + parti->type;
 
 		assert( ptype->move_type != MT_IMMOVABLE );
-		assert( !( x < 0 || y < 0 || x >= sConfiguration.xres || y >= sConfiguration.yres ||
+		assert( !( partpl->x < 0 || partpl->y < 0 || x >= sConfiguration.xres || y >= sConfiguration.yres ||
 			air->type ) );
 
 		//
@@ -315,26 +324,25 @@ void solver_cpu_st_update( pp_time_t dt )
 
 		if( ptype->hconduct > 0.0f )
 		{
-			accum_heat = 0.0f;
-			heat_count = 0;
-			for( nx = -1; nx < 2; nx++ )
-			{
-				for( ny = -1; ny < 2; ny++ )
-				{
-					if( x + nx >= 0 && y + ny >= 0 && x + nx < sConfiguration.xres && y + ny < sConfiguration.yres )
-					{
-						if( !spParticleMap[ ( y + ny ) * sConfiguration.xres + nx + x ].type )
+			partp->temp = partpl->temp;
+            if( x > 0 && y > 0 && x < sConfiguration.xres - 1 && y < sConfiguration.yres - 1 )
+            {
+			    accum_heat = 0.0f;
+			    heat_count = 0;
+			    for( nx = -1; nx < 2; nx++ )
+				    for( ny = -1; ny < 2; ny++ )
+				    {
+                        tempp = spParticleMap + ( y + ny ) * sConfiguration.xres + nx + x;
+						if( !tempp->type )
 							continue;
 
 						heat_count++;
-						accum_heat += ( spParticlesPhysInfoLast + spParticleMap[ ( y + ny ) * sConfiguration.xres + nx + x ].index )->temp;
-					}
-				}
-			}
+						accum_heat += ( spParticlesPhysInfoLast + tempp->index )->temp;
+				    }
 
-			partp->temp = partpl->temp;
-			if( heat_count > 1 )
-				partp->temp += ( accum_heat / heat_count - partpl->temp ) * ptype->hconduct * sdt;
+			    if( heat_count > 1 )
+				    partp->temp += ( accum_heat / heat_count - partpl->temp ) * ptype->hconduct * sdt;
+            }
 		}
 
 		//
@@ -384,7 +392,7 @@ void solver_cpu_st_update( pp_time_t dt )
         absdx = fabsf( dx );
         absdy = fabsf( dy );
 		maxv = absdx > absdy ? absdx : absdy;
-		k = ( int ) maxv + 1;
+		k = fast_ftol( maxv + 1 );
 		dx /= k;
 		dy /= k;
 		partp->x = partpl->x;
@@ -393,15 +401,23 @@ void solver_cpu_st_update( pp_time_t dt )
 		{
 			partp->x += dx;
 			partp->y += dy;
-			nx = ( int )floorf( partp->x );
-			ny = ( int )floorf( partp->y );
-			if( nx < 0 || nx >= sConfiguration.xres || 
-				ny < 0 || ny >= sConfiguration.yres )
+			nx = fast_ftol( partp->x );
+			ny = fast_ftol( partp->y );
+			if( partp->x < 0 || nx >= sConfiguration.xres || 
+				partp->y < 0 || ny >= sConfiguration.yres )
 				break;
 
-			if( spParticleMap[ ny * sConfiguration.xres + nx ].collision )
+            tempp = spParticleMap + ny * sConfiguration.xres + nx;
+			if( tempp->collision )
 				break;
 		}
+
+		if( partp->x < 0 || nx >= sConfiguration.xres || 
+			partp->y < 0 || ny >= sConfiguration.yres )
+        {
+			kill_part( parti, x, y, i );
+			continue;
+        }
 
 		if( x == nx && y == ny )
 		{
@@ -412,7 +428,7 @@ void solver_cpu_st_update( pp_time_t dt )
 		savestagnant = parti->stagnant;
 		parti->stagnant = 0;
 		parti->freefall = 1;
-		if( !try_move( i, x, y, nx, ny ) )
+		if( tempp->type )
 		{
 			parti->freefall = 0;
 			savex = partp->x;
@@ -469,11 +485,10 @@ void solver_cpu_st_update( pp_time_t dt )
 					{
 						found = 0;
 						k = savestagnant ? 10 : 50;
-						k = ( int ) ( k );
 						for( j = x + r; j >= 0 && j >= x - k && j < x + k && j < sConfiguration.xres; j += r )
 						{
-							if( spParticleMap[ y * sConfiguration.xres + j ].type
-								&& spParticleMap[ y * sConfiguration.xres + j ].type != parti->type )
+                            tempp = spParticleMap + y * sConfiguration.xres + j;
+							if( tempp->type && tempp->type != parti->type )
 								break;
 
 							if( try_move( i, x, y, j, ny ) )
@@ -500,8 +515,8 @@ void solver_cpu_st_update( pp_time_t dt )
 						{
 							for( j = y + r; j >= 0 && j < sConfiguration.yres && j >= y - k && j < y + k; j += r)
 							{
-								if( spParticleMap[ j * sConfiguration.xres + x ].type
-									&& spParticleMap[ j * sConfiguration.xres + x ].type != parti->type )
+                                tempp = spParticleMap + j * sConfiguration.xres + x;
+    							if( tempp->type && tempp->type != parti->type )
 								{
 									found = 0;
 									break;
@@ -528,11 +543,11 @@ void solver_cpu_st_update( pp_time_t dt )
 			partp->vy *= ptype->collision;
 		}
 
-		x = ( int )floorf( partpl->x );
-		y = ( int )floorf( partpl->y );
-		nx = ( int )floorf( partp->x );
-		ny = ( int )floorf( partp->y );
-		if( nx < 0 || ny < 0 ||
+		x = fast_ftol( partpl->x );
+		y = fast_ftol( partpl->y );
+		nx = fast_ftol( partp->x );
+		ny = fast_ftol( partp->y );
+		if( partp->x < 0 || partp->y < 0 ||
 			nx >= sConfiguration.xres ||
 			ny >= sConfiguration.yres )
 		{
