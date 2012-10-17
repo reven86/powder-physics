@@ -57,8 +57,9 @@ struct PPConstants
 //! Particle common info. Dead particles maintain a linked list.
 struct PPParticleInfo
 {
-	unsigned int type : 7;		//!< Particle's type (>0). If particle is dead, 'type' is 0.
+	unsigned int type : 6;		//!< Particle's type (>0). If particle is dead, 'type' is 0.
 	unsigned int stagnant : 1;	//!< Particle is stagnant.
+    unsigned int blocked : 1;   //!< Particle is blocked by 8 neighbours. Only its heat is updated.
 	unsigned int freefall : 1;	//!< Particle is free falling, e.g. not collided in last frame.
 	pp_time_t life : 23;		//!< Particle remaining lifetime. If less than zero, particle is always alive. If particle is dead, used as index of next dead particle.
 };
