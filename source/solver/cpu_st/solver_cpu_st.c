@@ -271,7 +271,7 @@ void solver_cpu_st_update( pp_time_t dt )
 	int i, j, k, r, npart;
 	int x, y, nx = 0, ny = 0;
 	int gridx, gridy;
-	int found, savestagnant;
+	int found, savestagnant, wasblocked;
 	float loss_factor;
 	float sdt = FLT_SECOND * dt;
 	float accum_heat;
@@ -399,6 +399,7 @@ void solver_cpu_st_update( pp_time_t dt )
                 heat_count++;
         }
 
+        wasblocked = parti->blocked;
         parti->blocked = heat_count == 8 &&
             n->stagnant && ne->stagnant && e->stagnant &&
             se->stagnant && s->stagnant && sw->stagnant &&
@@ -414,17 +415,17 @@ void solver_cpu_st_update( pp_time_t dt )
 		partp->y = partpl->y;
         if( parti->blocked )
         {
-            parti->stagnant = 1;
-			parti->freefall = 0;
-    		spParticleMap[ y * sConfiguration.xres + x ].stagnant = parti->stagnant;
+            if( !wasblocked )
+            {
+                partp->vx = 0.0f;
+                partp->vy = 0.0f;
+                parti->stagnant = 1;
+			    parti->freefall = 0;
+    		    spParticleMap[ y * sConfiguration.xres + x ].stagnant = parti->stagnant;
+            }
 			processed_count++;
             continue;
         }
-
-        gridx = x / sConfiguration.grid_size;
-		gridy = y / sConfiguration.grid_size;
-
-		air = spAir + gridy * sGridX + gridx;
 
 		assert( ptype->move_type != MT_IMMOVABLE );
 		assert( !air->type );
@@ -432,6 +433,11 @@ void solver_cpu_st_update( pp_time_t dt )
 		//
 		// handle velocity
 		//
+
+        gridx = x / sConfiguration.grid_size;
+		gridy = y / sConfiguration.grid_size;
+
+		air = spAir + gridy * sGridX + gridx;
 
 		loss_factor = ( float ) pow( ptype->airloss, ( float ) dt * FLT_SECOND );
 
@@ -535,26 +541,26 @@ void solver_cpu_st_update( pp_time_t dt )
 					r = ( rand() & 1 ) * 2 - 1;
 					if( ny != y && try_move( i, x, y, x + r, ny ) )
 					{
-						partp->x = ( float )( x + r );
+						partp->x = ( float )( x + r ) + 0.5f;
 						partp->y = savey;
 						assert( !incollision( partp ) );
 					}
 					else if( ny != y && try_move( i, x, y, x - r, ny ) )
 					{
-						partp->x = ( float )( x - r );
+						partp->x = ( float )( x - r ) + 0.5f;
 						partp->y = savey;
 						assert( !incollision( partp ) );
 					}
 					else if( nx != x && try_move( i, x, y, nx, y + r ) )
 					{
 						partp->x = savex;
-						partp->y = ( float )( y + r );
+						partp->y = ( float )( y + r ) + 0.5f;
 						assert( !incollision( partp ) );
 					}
 					else if( nx != x && try_move( i, x, y, nx, y - r ) )
 					{
 						partp->x = savex;
-						partp->y = ( float )( y - r );
+						partp->y = ( float )( y - r ) + 0.5f;
 						assert( !incollision( partp ) );
 					}
 					else if( ptype->move_type == MT_LIQUID && partp->vy > fabs( partp->vx ) )
@@ -562,7 +568,7 @@ void solver_cpu_st_update( pp_time_t dt )
 						found = 0;
 						k = savestagnant ? 10 : 50;
                         tempp = spParticleMap + y * sConfiguration.xres + x;
-						for( j = x + r; j >= 0 && j >= x - k && j < x + k && j < sConfiguration.xres; j += r )
+						for( j = x + r; j >= x - k && j < x + k; j += r )
 						{
                             tempp += r;
 							if( tempp->type && tempp->type != parti->type )
@@ -570,8 +576,8 @@ void solver_cpu_st_update( pp_time_t dt )
 
 							if( try_move( i, x, y, j, ny ) )
 							{
-								partp->x = ( float )( j );
-								partp->y = ( float )( ny );
+								partp->x = ( float )( j ) + 0.5f;
+								partp->y = ( float )( ny ) + 0.5f;
 								x = j;
 								y = ny;
 								found = 1;
@@ -580,7 +586,7 @@ void solver_cpu_st_update( pp_time_t dt )
 							}
 							if( try_move( i, x, y, j, y ) )
 							{
-								partp->x = ( float )( j );
+								partp->x = ( float )( j ) + 0.5f;
 								x = j;
 								found = 1;
 								assert( !incollision( partp ) );
@@ -591,7 +597,7 @@ void solver_cpu_st_update( pp_time_t dt )
 						{
     						r = partp->vy > 0 ? 1 : -1;
                             tempp = spParticleMap + y * sConfiguration.xres + x;
-							for( j = y + r; j >= 0 && j < sConfiguration.yres && j >= y - k && j < y + k; j += r )
+							for( j = y + r; j >= y - k && j < y + k; j += r )
 							{
                                 tempp += r * sConfiguration.xres;
     							if( tempp->type && tempp->type != parti->type )
@@ -601,7 +607,7 @@ void solver_cpu_st_update( pp_time_t dt )
 								}
 								if( try_move( i, x, y, x, j ) )
 								{
-									partp->y = ( float )( j );
+									partp->y = ( float )( j ) + 0.5f;
 									assert( !incollision( partp ) );
 									break;
 								}
