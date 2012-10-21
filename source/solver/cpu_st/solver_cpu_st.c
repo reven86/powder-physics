@@ -428,7 +428,6 @@ void solver_cpu_st_update( pp_time_t dt )
         }
 
 		assert( ptype->move_type != MT_IMMOVABLE );
-		assert( !air->type );
 
 		//
 		// handle velocity
@@ -438,6 +437,7 @@ void solver_cpu_st_update( pp_time_t dt )
 		gridy = y / sConfiguration.grid_size;
 
 		air = spAir + gridy * sGridX + gridx;
+		assert( !air->type );
 
 		loss_factor = ( float ) pow( ptype->airloss, ( float ) dt * FLT_SECOND );
 
