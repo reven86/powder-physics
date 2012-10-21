@@ -211,7 +211,7 @@ void update_air( pp_time_t dt )
 		}
 }
 
-__inline int try_move( int i, int x, int y, int nx, int ny )
+static __inline int try_move( int i, int x, int y, int nx, int ny )
 {
 	i;
 
@@ -246,12 +246,12 @@ int incollision( const struct PPParticlePhysInfo * p )
 }
 #endif
 
-__inline float frand( )
+static __inline float frand( )
 {
 	return ( float ) rand( ) / RAND_MAX;
 }
 
-__inline int fast_ftol( float x )
+static __inline int fast_ftol( float x )
 {
     //return ( int ) floorf( x );
 
