@@ -52,7 +52,7 @@
     <ClCompile Include="..\source\solver\cpu_st\solver_cpu_st.c">
       <Filter>solver\cpu_st</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\pch.cpp" />
+    <ClCompile Include="..\source\pch.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\source\particles\register.inl">
